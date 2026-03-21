@@ -1,0 +1,23 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: dark;
+  --color-primary: #ffc107;
+  --color-primary-hover: #ffd54f;
+  --color-dark: #0a0a0a;
+  --color-dark-lighter: #1a1a1a;
+  --color-dark-border: #333333;
+}
+
+@theme {
+  --color-primary: var(--color-primary);
+  --color-primary-hover: var(--color-primary-hover);
+  --color-dark: var(--color-dark);
+  --color-dark-lighter: var(--color-dark-lighter);
+  --color-dark-border: var(--color-dark-border);
+}
+
+body {
+  background-color: var(--color-dark);
+  color: #e0e0e0;
+}

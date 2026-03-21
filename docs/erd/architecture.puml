@@ -1,0 +1,149 @@
+@startuml Transport Management System - Polyglot Architecture
+
+' Styling
+skinparam linetype ortho
+skinparam shadowing false
+
+' MySQL Entities
+entity "User" as user #LightBlue {
+  * id : int
+  --
+  name : string
+  email : string
+  phone : string
+  created_at : datetime
+}
+
+entity "Vehicle" as vehicle #LightBlue {
+  * id : int
+  --
+  plate : string
+  type : string
+  capacity : int
+  status : string
+}
+
+' MongoDB Documents
+entity "UserHistory" as user_history #LightGreen {
+  * _id : ObjectId
+  --
+  user_id : int
+  stop_id : string
+  timestamp : datetime
+  location : coordinates
+  action : string
+}
+
+entity "VehicleHistory" as vehicle_history #LightGreen {
+  * _id : ObjectId
+  --
+  vehicle_id : int
+  stop_id : string
+  route_id : string
+  timestamp : datetime
+  location : coordinates
+  status : string
+}
+
+entity "UserPreferences" as user_preferences #LightGreen {
+  * _id : ObjectId
+  --
+  user_id : int
+  favorite_routes : [string]
+  favorite_stops : [string]
+  notify_route_changes : boolean
+  notify_eta : boolean
+  feedback_score : int
+  feedback_text : string
+  created_at : datetime
+  updated_at : datetime
+}
+
+' Neo4j Nodes
+entity "Stop" as stop #LightCoral {
+  * id : string
+  --
+  name : string
+  coordinates : point
+  type : string
+  zone : string
+}
+
+entity "Route" as route #LightCoral {
+  * id : string
+  --
+  name : string
+  number : string
+  schedule : string
+  active : boolean
+}
+
+' Redis Cache
+entity "Login" as login #LightYellow {
+  * key : string
+  --
+  value : json
+  user_id : int
+  token : string
+  expires_at : timestamp
+}
+
+' Relationships
+user --o{ user_history : "has history"
+vehicle --o{ vehicle_history : "has history"
+vehicle }o-- route : "operates route"
+user_history }o-- stop : "visited"
+vehicle_history }o-- stop : "passed through"
+route }--{ stop : "graph"
+user -.- login : "session"
+user --  user_preferences : "has preferences"
+
+' Technology Notes
+' note right of user
+'   **MySQL (Relational)**
+'   Structured data
+'   ACID consistency
+' end note
+
+' note right of user_history
+'   **MongoDB (Document)**
+'   Time-series data
+'   High write frequency
+'   Pivot User ↔ Stops
+' end note
+
+' note right of vehicle_history
+'   **MongoDB (Document)**
+'   Real-time tracking
+'   Timestamps for history
+' end note
+
+' note right of stop
+'   **Neo4j (Graph)**
+'   Stop network
+'   Pathfinding algorithms
+' end note
+
+' note right of route
+'   **Neo4j (Graph)**
+'   Routes as graphs
+'   Stops = ordered edges
+' end note
+
+' note right of login
+'   **Redis (Cache)**
+'   Key-value store
+'   Automatic TTL
+'   Ultra-low latency
+' end note
+
+legend top right
+  **Polyglot Architecture**
+  |= Color |= Technology |= Usage |
+  | <#LightBlue> | MySQL | Base relational data |
+  | <#LightGreen> | MongoDB | Documents with timestamps |
+  | <#LightCoral> | Neo4j | Routes/stops graph |
+  | <#LightYellow> | Redis | Session cache |
+endlegend
+
+@enduml
