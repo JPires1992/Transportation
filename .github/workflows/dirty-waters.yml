@@ -1,0 +1,50 @@
+name: Dirty-Waters (SBOM smells)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Checkout project repo
+        uses: actions/checkout@v4
+
+      - name: Clone Dirty-Waters
+        run: |
+          git clone https://github.com/chains-project/dirty-waters.git
+          cd dirty-waters
+          python -m pip install --upgrade pip
+          pip install -e .
+
+      - name: Run Dirty-Waters (npm)
+        env:
+           GITHUB_API_TOKEN: ${{ secrets.API_TOKEN }}
+        run: |
+          cd dirty-waters
+          python -c "import os; print('TOKEN_SET=', bool(os.getenv('GITHUB_API_TOKEN')))"
+          git config --global url."https://x-access-token:${GITHUB_API_TOKEN}@github.com/".insteadOf "https://github.com/"
+          dirty-waters -p JPires1992/Transportation -pm npm --gradual-report false --debug
+
+      - name: Upload results as artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dirty-waters-results
+          path: |
+            dirty-waters/**/*.md
+            dirty-waters/**/*.json
+            dirty-waters/**/*.log
+            **/*.md
+            **/*.json
+            **/*.log
