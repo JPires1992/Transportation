@@ -6,6 +6,11 @@ on:
 jobs:
   analyze:
     runs-on: ubuntu-latest
+
+    # Força o runner do GitHub a executar processos de JS/Node no Node 24
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+      
     steps:
       - name: Set up Python
         uses: actions/setup-python@v5
