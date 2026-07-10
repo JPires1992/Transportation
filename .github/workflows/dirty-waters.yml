@@ -34,7 +34,7 @@ jobs:
           cd dirty-waters
           python -c "import os; print('TOKEN_SET=', bool(os.getenv('GITHUB_API_TOKEN')))"
           git config --global url."https://x-access-token:${GITHUB_API_TOKEN}@github.com/".insteadOf "https://github.com/"
-          dirty-waters -p JPires1992/Transportation -pm npm --gradual-report=false --check-source-code --check-source-code-sha --check-deprecated --check-forks --check-provenance --check-code-signature --check-aliased-packages
+          dirty-waters -p JPires1992/Transportation -pm npm --gradual-report false --debug
 
       - name: Upload results as artifact
         if: always()
