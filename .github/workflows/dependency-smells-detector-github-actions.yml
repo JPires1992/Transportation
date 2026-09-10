@@ -6,12 +6,20 @@ name: Dependency Smells Detector
 on:
   workflow_dispatch:
     inputs:
+      detector_repository:
+        description: "Repository that contains the dependency-smells-detector backend."
+        required: true
+        default: "JPires1992/dependency-smells-detector"
+      detector_ref:
+        description: "Branch, tag, or commit SHA of the detector repository."
+        required: true
+        default: "main"
       target:
-        description: "GitHub repository to analyze, in owner/repo format."
+        description: "GitHub repository to analyse, in owner/repo format."
         required: true
         default: "JPires1992/Transportation"
       ref:
-        description: "Branch, tag, or commit SHA to analyze."
+        description: "Branch, tag, or commit SHA to analyse."
         required: true
         default: "main"
       dirty_waters_timeout_ms:
@@ -33,36 +41,38 @@ jobs:
     steps:
       - name: Checkout detector repository
         uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.detector_repository }}
+          ref: ${{ inputs.detector_ref }}
+          path: detector
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "24"
-          cache: "npm"
-          cache-dependency-path: "backend/package-lock.json"
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
-      - name: Prepare artifact directory
-        run: mkdir -p backend/reports
+      - name: Prepare artefact directory
+        run: mkdir -p detector/backend/reports
 
       - name: Install backend dependencies
-        working-directory: backend
+        working-directory: detector/backend
         run: |
           set -o pipefail
           npm ci 2>&1 | tee -a reports/workflow.log
 
       - name: Prepare Python packaging
-        working-directory: backend
+        working-directory: detector/backend
         run: |
           set -o pipefail
           python -m pip install --upgrade pip 2>&1 | tee -a reports/workflow.log
 
       - name: Run dependency smell analysis
-        working-directory: backend
+        working-directory: detector/backend
         env:
           GITHUB_API_TOKEN: ${{ secrets.API_TOKEN }}
           GITHUB_TOKEN: ${{ github.token }}
@@ -80,11 +90,11 @@ jobs:
 
           npm run analyze "${args[@]}" 2>&1 | tee -a reports/workflow.log
 
-      - name: Upload analysis artifacts
+      - name: Upload analysis artefacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: dependency-smells-results
-          path: backend/reports/**
+          path: detector/backend/reports/**
           if-no-files-found: warn
           retention-days: 30
