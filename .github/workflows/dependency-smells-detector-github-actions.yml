@@ -6,14 +6,6 @@ name: Dependency Smells Detector
 on:
   workflow_dispatch:
     inputs:
-      detector_repository:
-        description: "Repository that contains the dependency-smells-detector backend."
-        required: true
-        default: "JPires1992/dependency-smells-detector"
-      detector_ref:
-        description: "Branch, tag, or commit SHA of the detector repository."
-        required: true
-        default: "main"
       target:
         description: "GitHub repository to analyse, in owner/repo format."
         required: true
@@ -22,10 +14,6 @@ on:
         description: "Branch, tag, or commit SHA to analyse."
         required: true
         default: "main"
-      dirty_waters_timeout_ms:
-        description: "Dirty-Waters timeout in milliseconds."
-        required: true
-        default: "3600000"
 
 permissions:
   contents: read
@@ -42,8 +30,8 @@ jobs:
       - name: Checkout detector repository
         uses: actions/checkout@v4
         with:
-          repository: ${{ inputs.detector_repository }}
-          ref: ${{ inputs.detector_ref }}
+          repository: JPires1992/dependency-smells-detector
+          ref: main
           path: detector
 
       - name: Set up Node.js
@@ -57,19 +45,19 @@ jobs:
           python-version: "3.12"
 
       - name: Prepare artefact directory
-        run: mkdir -p detector/backend/reports
+        run: mkdir -p detector/backend/reports-pipeline
 
       - name: Install backend dependencies
         working-directory: detector/backend
         run: |
           set -o pipefail
-          npm ci 2>&1 | tee -a reports/workflow.log
+          npm ci 2>&1 | tee -a reports-pipeline/workflow.log
 
       - name: Prepare Python packaging
         working-directory: detector/backend
         run: |
           set -o pipefail
-          python -m pip install --upgrade pip 2>&1 | tee -a reports/workflow.log
+          python -m pip install --upgrade pip 2>&1 | tee -a reports-pipeline/workflow.log
 
       - name: Run dependency smell analysis
         working-directory: detector/backend
@@ -80,21 +68,17 @@ jobs:
           set -o pipefail
           export GITHUB_API_TOKEN="${GITHUB_API_TOKEN:-$GITHUB_TOKEN}"
 
-          args=(
-            --
-            --target "${{ inputs.target }}"
-            --ref "${{ inputs.ref }}"
-            --output reports
-            --dirty-waters-timeout-ms "${{ inputs.dirty_waters_timeout_ms }}"
-          )
-
-          npm run analyze "${args[@]}" 2>&1 | tee -a reports/workflow.log
+          npm run analyse -- \
+            --target "${{ inputs.target }}" \
+            --ref "${{ inputs.ref }}" \
+            --output reports-pipeline \
+            --dirty-waters-timeout-ms 3600000 2>&1 | tee -a reports-pipeline/workflow.log
 
       - name: Upload analysis artefacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: dependency-smells-results
-          path: detector/backend/reports/**
+          path: detector/backend/reports-pipeline/**
           if-no-files-found: warn
           retention-days: 30
