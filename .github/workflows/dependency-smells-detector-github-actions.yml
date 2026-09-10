@@ -68,7 +68,7 @@ jobs:
           set -o pipefail
           export GITHUB_API_TOKEN="${GITHUB_API_TOKEN:-$GITHUB_TOKEN}"
 
-          npm run analyse -- \
+          npm run analyze -- \
             --target "${{ inputs.target }}" \
             --ref "${{ inputs.ref }}" \
             --output reports-pipeline \
