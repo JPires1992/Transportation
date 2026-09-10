@@ -1,0 +1,90 @@
+# Example GitHub Actions workflow.
+# Copy this file to .github/workflows/dependency-smells-detector.yml to run it.
+
+name: Dependency Smells Detector
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "GitHub repository to analyze, in owner/repo format."
+        required: true
+        default: "JPires1992/Transportation"
+      ref:
+        description: "Branch, tag, or commit SHA to analyze."
+        required: true
+        default: "main"
+      dirty_waters_timeout_ms:
+        description: "Dirty-Waters timeout in milliseconds."
+        required: true
+        default: "3600000"
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+    steps:
+      - name: Checkout detector repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "npm"
+          cache-dependency-path: "backend/package-lock.json"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Prepare artifact directory
+        run: mkdir -p backend/reports
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: |
+          set -o pipefail
+          npm ci 2>&1 | tee -a reports/workflow.log
+
+      - name: Prepare Python packaging
+        working-directory: backend
+        run: |
+          set -o pipefail
+          python -m pip install --upgrade pip 2>&1 | tee -a reports/workflow.log
+
+      - name: Run dependency smell analysis
+        working-directory: backend
+        env:
+          GITHUB_API_TOKEN: ${{ secrets.API_TOKEN }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -o pipefail
+          export GITHUB_API_TOKEN="${GITHUB_API_TOKEN:-$GITHUB_TOKEN}"
+
+          args=(
+            --
+            --target "${{ inputs.target }}"
+            --ref "${{ inputs.ref }}"
+            --output reports
+            --dirty-waters-timeout-ms "${{ inputs.dirty_waters_timeout_ms }}"
+          )
+
+          npm run analyze "${args[@]}" 2>&1 | tee -a reports/workflow.log
+
+      - name: Upload analysis artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-smells-results
+          path: backend/reports/**
+          if-no-files-found: warn
+          retention-days: 30
